@@ -5,26 +5,32 @@ DATASET=ImageNet_R
 N_CLASS=200
 
 # hard coded inputs
-GPUID='0'  # Đổi thành 0 cho Kaggle nhé
-CONFIG=configs/imagenet-r_prompt.yaml
+GPUID='0'  # <-- SỬA: Đổi về 0 vì Kaggle chỉ có 1 GPU
+CONFIG=configs/imnet-r_prompt_long.yaml
 REPEAT=1
 OVERWRITE=0
 
 # hyperparameter arrays
-LR=0.02
-SCHEDULE=25
-EMA_COEFF=0.7
-SEED_LIST=(1 2 3)
+LR=0.003
+SCHEDULE=30
+EMA_COEFF=0.8
+SEED_LIST=(1)
 
-DELAY_BETWEEN_EXPERIMENTS=10 
-LOG_DIR="logs"
-mkdir -p $LOG_DIR
+# Set delay between experiments (in seconds)
+DELAY_BETWEEN_EXPERIMENTS=10
+
+# Create log directory
+LOG_DIR="logs/${DATASET}"
+mkdir -p "$LOG_DIR"  # <-- SỬA: Tạo thư mục log đầy đủ đường dẫn
 
 for seed in "${SEED_LIST[@]}"
     do
+        # save directory
         OUTDIR="./checkpoints/${DATASET}/seed${seed}"
         mkdir -p $OUTDIR
-        LOG_FILE="${LOG_DIR}/${DATASET}_seed${seed}.log"
+
+        # Create unique log file name
+        LOG_FILE="${LOG_DIR}/seed${seed}.log"
 
         echo "Starting experiment with seed=$seed"
         
@@ -43,9 +49,13 @@ for seed in "${SEED_LIST[@]}"
             --dataroot /kaggle/working/data \
             --log_dir ${OUTDIR} > "$LOG_FILE" 2>&1 &
 
+        # Store the PID of the background process
         PID=$!
+        
+        # Wait for process to complete
         wait $PID
         
+        # Check if process completed successfully
         if [ $? -eq 0 ]; then
             echo "Experiment completed successfully"
         else
@@ -53,12 +63,12 @@ for seed in "${SEED_LIST[@]}"
         fi
 
         rm -rf ${OUTDIR}/models
+        
         echo "----------------------------------------"
         
-        if [ $current -lt $total_experiments ]; then
-            echo "Waiting for $DELAY_BETWEEN_EXPERIMENTS seconds before next experiment..."
-            sleep $DELAY_BETWEEN_EXPERIMENTS
-        fi
+        # <-- SỬA: Xóa cái if lỗi biến rỗng đi, cho sleep luôn
+        echo "Waiting for $DELAY_BETWEEN_EXPERIMENTS seconds before next experiment..."
+        sleep $DELAY_BETWEEN_EXPERIMENTS
     done
 
 echo "All experiments completed!"
