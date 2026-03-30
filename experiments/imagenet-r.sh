@@ -6,7 +6,7 @@ N_CLASS=200
 
 # hard coded inputs
 GPUID='0'  # <-- SỬA: Đổi về 0 vì Kaggle chỉ có 1 GPU
-CONFIG=configs/imnet-r_prompt_long.yaml
+CONFIG=configs/imnet-r_prompt.yaml
 REPEAT=1
 OVERWRITE=0
 
