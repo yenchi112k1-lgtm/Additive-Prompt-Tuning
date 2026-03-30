@@ -5,32 +5,26 @@ DATASET=ImageNet_R
 N_CLASS=200
 
 # hard coded inputs
-GPUID='7'
-CONFIG=configs/imnet-r_prompt.yaml
+GPUID='0'  # Đổi thành 0 cho Kaggle nhé
+CONFIG=configs/imagenet-r_prompt.yaml
 REPEAT=1
 OVERWRITE=0
 
 # hyperparameter arrays
-LR=0.003
-SCHEDULE=30
-EMA_COEFF=0.8
+LR=0.02
+SCHEDULE=25
+EMA_COEFF=0.7
 SEED_LIST=(1 2 3)
 
-# Set delay between experiments (in seconds)
-DELAY_BETWEEN_EXPERIMENTS=10  # Adjust this value as needed
-
-# Create log directory
+DELAY_BETWEEN_EXPERIMENTS=10 
 LOG_DIR="logs"
 mkdir -p $LOG_DIR
 
 for seed in "${SEED_LIST[@]}"
     do
-        # save directory
         OUTDIR="./checkpoints/${DATASET}/seed${seed}"
         mkdir -p $OUTDIR
-
-        # Create unique log file name
-        LOG_FILE="${LOG_DIR}/${DATASET}/seed${seed}.log"
+        LOG_FILE="${LOG_DIR}/${DATASET}_seed${seed}.log"
 
         echo "Starting experiment with seed=$seed"
         
@@ -46,15 +40,12 @@ for seed in "${SEED_LIST[@]}"
             --seed $seed \
             --ema_coeff $EMA_COEFF \
             --schedule $SCHEDULE \
+            --dataroot /kaggle/working/data \
             --log_dir ${OUTDIR} > "$LOG_FILE" 2>&1 &
 
-        # Store the PID of the background process
         PID=$!
-        
-        # Wait for process to complete
         wait $PID
         
-        # Check if process completed successfully
         if [ $? -eq 0 ]; then
             echo "Experiment completed successfully"
         else
@@ -62,10 +53,8 @@ for seed in "${SEED_LIST[@]}"
         fi
 
         rm -rf ${OUTDIR}/models
-        
         echo "----------------------------------------"
         
-        # Add delay before next experiment
         if [ $current -lt $total_experiments ]; then
             echo "Waiting for $DELAY_BETWEEN_EXPERIMENTS seconds before next experiment..."
             sleep $DELAY_BETWEEN_EXPERIMENTS
