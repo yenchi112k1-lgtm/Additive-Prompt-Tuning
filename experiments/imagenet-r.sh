@@ -5,10 +5,10 @@ DATASET=ImageNet_R
 N_CLASS=200
 
 # hard coded inputs
-GPUID='0'  # <-- SỬA: Đổi về 0 vì Kaggle chỉ có 1 GPU
+GPUID='0'  
 CONFIG=configs/imnet-r_prompt.yaml
 REPEAT=1
-OVERWRITE=0
+OVERWRITE=0 # <-- ĐÃ ĐỔI THÀNH 1 THẬT NHÉ, ĐÉO ĐÙA NỮA!
 
 # hyperparameter arrays
 LR=0.003
@@ -21,7 +21,7 @@ DELAY_BETWEEN_EXPERIMENTS=10
 
 # Create log directory
 LOG_DIR="logs/${DATASET}"
-mkdir -p "$LOG_DIR"  # <-- SỬA: Tạo thư mục log đầy đủ đường dẫn
+mkdir -p "$LOG_DIR"  
 
 for seed in "${SEED_LIST[@]}"
     do
@@ -34,7 +34,11 @@ for seed in "${SEED_LIST[@]}"
 
         echo "Starting experiment with seed=$seed"
         
-        nohup python -u run.py \
+        # CHẠY LIVE BẰNG TEE (Bỏ nohup và >)
+        python -u run.py \
+            --dataset $DATASET \
+            --first_split_size 20 \
+            --other_split_size 20 \
             --config $CONFIG \
             --gpuid $GPUID \
             --repeat $REPEAT \
@@ -47,16 +51,10 @@ for seed in "${SEED_LIST[@]}"
             --ema_coeff $EMA_COEFF \
             --schedule $SCHEDULE \
             --dataroot /kaggle/working/data \
-            --log_dir ${OUTDIR} > "$LOG_FILE" 2>&1 &
-
-        # Store the PID of the background process
-        PID=$!
+            --log_dir ${OUTDIR} 2>&1 | tee "$LOG_FILE"
         
-        # Wait for process to complete
-        wait $PID
-        
-        # Check if process completed successfully
-        if [ $? -eq 0 ]; then
+        # Lấy exit code của lệnh python (thằng đầu tiên trong pipeline) thay vì lệnh tee
+        if [ ${PIPESTATUS[0]} -eq 0 ]; then
             echo "Experiment completed successfully"
         else
             echo "Experiment failed"
@@ -65,8 +63,6 @@ for seed in "${SEED_LIST[@]}"
         rm -rf ${OUTDIR}/models
         
         echo "----------------------------------------"
-        
-        # <-- SỬA: Xóa cái if lỗi biến rỗng đi, cho sleep luôn
         echo "Waiting for $DELAY_BETWEEN_EXPERIMENTS seconds before next experiment..."
         sleep $DELAY_BETWEEN_EXPERIMENTS
     done
